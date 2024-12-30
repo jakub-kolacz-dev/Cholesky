@@ -4,7 +4,7 @@
 #include <omp.h>
 #include <time.h>
 
-double** generatePositiveDefiniteMatrix(int n);
+double** generatePositiveDefiniteMatrix(int n, double min, double max);
 void printMatrix(double** mat, int n);
 void choleskyDecomposition(double** A, double** L, int n);
 void computeLLT(double** L, double** LLT, int n);
@@ -18,7 +18,8 @@ int main() {
     //my tests've shown that we need to aim for 10k matrix to receive 2mins computation time
     //remember that print function and generation of content also takes time
     int n = 4;
-    double** A = generatePositiveDefiniteMatrix(n);
+    printf("Generating matrix %d X %d\n", n, n);
+    double** A = generatePositiveDefiniteMatrix(n, -10, 10);
     printMatrix(A, n);
 
     double** L = (double**)malloc(n * sizeof(double*));
@@ -65,7 +66,9 @@ int main() {
 }
 
 // Function to generate a symmetric positive definite matrix
-double** generatePositiveDefiniteMatrix(int n) {
+double** generatePositiveDefiniteMatrix(int n, double min, double max) {
+    double range = max - min;
+    double divider = RAND_MAX / range;
     srand(time(NULL)); // init pseudo random generator
     double** G = (double**)malloc(n * sizeof(double*));
     for (int i = 0; i < n; i++) {
@@ -74,7 +77,7 @@ double** generatePositiveDefiniteMatrix(int n) {
 
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            G[i][j] = (rand() % 10) + 1;
+            G[i][j] = min + rand() / divider;
         }
     }
 
