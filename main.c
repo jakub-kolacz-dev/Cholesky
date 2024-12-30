@@ -2,16 +2,140 @@
 #include <stdlib.h>
 #include <math.h>
 #include <omp.h>
+#include <time.h>
+
+double** generateRandomSquareMatrix(uint n, double min_val, double max_val);
+double** generatePositiveDefiniteMatrix(double** G, uint n);
+void printMatrix(double** mat, uint n);
+double** copySquareMatrix(double** mat, uint n);
+void freeSquareMatrix(double** mat, uint n);
+void sequentialCholeskyDecomposition(double** A, double** L, int n);
+void choleskyDecomposition(double** A, double** L, int n);
+void computeLLT(double** L, double** LLT, int n);
+double frobeniusNorm(double** A, double** LLT, int n);
+
+int main(void) {
+    //for one thread computing arrays this size should be around 1sec
+    //my tests've shown that we need to aim for 10k matrix to receive 2mins computation time
+    //remember that print function and generation of content also takes time
+    int n = 1000;
+    printf("Generating matrix %d X %d ...\n", n, n);
+    double** G = generateRandomSquareMatrix(n, -10, 10);
+    double** A = generatePositiveDefiniteMatrix(G, n);
+    freeSquareMatrix(G, n);
+
+    printf("Sequential Cholesky Decomposition ...\n");
+    double** L = (double**)malloc(n * sizeof(double*));
+    double** LLT = (double**)malloc(n * sizeof(double*));
+    for (int i = 0; i < n; i++) {
+        L[i] = (double*)calloc(n, sizeof(double));
+        LLT[i] = (double*)calloc(n, sizeof(double));
+    }
+    double** A_cpy = copySquareMatrix(A, n);
+    double start = omp_get_wtime();
+    sequentialCholeskyDecomposition(A_cpy, L, n);
+    double end = omp_get_wtime();
+    printf("Computation time: %8.6f s\n", end - start);
+    computeLLT(L, LLT, n);
+    double norm = frobeniusNorm(A, LLT, n);
+    printf("Frobenius Norm: %8.6f\n", norm);
+    freeSquareMatrix(A_cpy, n);
+    freeSquareMatrix(L, n);
+    freeSquareMatrix(LLT, n);
+
+    printf("Parallel Cholesky Decomposition ...\n");
+    L = (double**)malloc(n * sizeof(double*));
+    LLT = (double**)malloc(n * sizeof(double*));
+    for (int i = 0; i < n; i++) {
+        L[i] = (double*)calloc(n, sizeof(double));
+        LLT[i] = (double*)calloc(n, sizeof(double));
+    }
+    A_cpy = copySquareMatrix(A, n);
+    start = omp_get_wtime();
+    choleskyDecomposition(A_cpy, L, n);
+    end = omp_get_wtime();
+    printf("Computation time: %8.6f s\n", end - start);
+    computeLLT(L, LLT, n);
+    norm = frobeniusNorm(A, LLT, n);
+    printf("Frobenius Norm: %8.6f\n", norm);
+    freeSquareMatrix(A_cpy, n);
+    freeSquareMatrix(L, n);
+    freeSquareMatrix(LLT, n);
 
 
-void printMatrix(double** mat, int n) {
+    freeSquareMatrix(A, n);
+
+    return 0;
+}
+
+double** generateRandomSquareMatrix(uint n, double min_val, double max_val){
+    srand(time(NULL)); // init pseudo random generator
+    double range = max_val - min_val;
+    double divider = RAND_MAX / range;
+    double** G = (double**)malloc(n * sizeof(double*));
+    for (int i = 0; i < n; i++) {
+        G[i] = (double*)malloc(n * sizeof(double));
+        for (int j = 0; j < n; j++) {
+            G[i][j] = min_val + rand() / divider;
+        }
+    }
+    return G;
+}
+// Function to generate a symmetric positive definite matrix
+double** generatePositiveDefiniteMatrix(double** G, uint n){
+    double** A = (double**)malloc(n * sizeof(double*));
+    for (int i = 0; i < n; i++) {
+        A[i] = (double*)malloc(n * sizeof(double));
+        for (int j = 0; j < n; j++) {
+            A[i][j] = 0;
+            for (int k = 0; k < n; k++) {
+                A[i][j] += G[i][k] * G[j][k];
+            }
+        }
+    }
+    return A;
+}
+
+void printMatrix(double** mat, uint n) {
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            printf("%8.4f ", mat[i][j]);
+            printf("%7.4f ", mat[i][j]);
         }
         printf("\n");
     }
     printf("\n");
+}
+
+double** copySquareMatrix(double** mat, uint n){
+    double** cpy = (double**)malloc(n * sizeof(double*));
+    for (int i = 0; i < n; i++) {
+        cpy[i] = (double*)malloc(n * sizeof(double));
+        for (int j = 0; j < n; j++) {
+            cpy[i][j] = mat[i][j];
+        }
+    }
+    return cpy;
+}
+
+void freeSquareMatrix(double** mat, uint n){
+    for (int i = 0; i < n; i++) {
+        free(mat[i]);
+    }
+    free(mat);
+}
+
+void sequentialCholeskyDecomposition(double** A, double** L, int n) {
+    for (int k = 0; k < n; k++) {
+        L[k][k] = sqrt(A[k][k]);
+        for (int i = k + 1; i < n; i++) {
+            L[i][k] = A[i][k] / L[k][k];
+        }
+        for (int i = k + 1; i < n; i++) {
+            for (int j = k + 1; j <= i; j++) {
+                A[i][j] -= L[i][k] * L[j][k];
+            }
+        }
+    }
 }
 
 void choleskyDecomposition(double** A, double** L, int n) {
@@ -28,38 +152,6 @@ void choleskyDecomposition(double** A, double** L, int n) {
             }
         }
     }
-}
-
-// Function to generate a symmetric positive definite matrix
-double** generatePositiveDefiniteMatrix(int n) {
-    double** G = (double**)malloc(n * sizeof(double*));
-    for (int i = 0; i < n; i++) {
-        G[i] = (double*)malloc(n * sizeof(double));
-    }
-
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            G[i][j] = (rand() % 10) + 1;
-        }
-    }
-
-    double** A = (double**)malloc(n * sizeof(double*));
-    for (int i = 0; i < n; i++) {
-        A[i] = (double*)malloc(n * sizeof(double));
-        for (int j = 0; j < n; j++) {
-            A[i][j] = 0;
-            for (int k = 0; k < n; k++) {
-                A[i][j] += G[i][k] * G[j][k];
-            }
-        }
-    }
-
-    for (int i = 0; i < n; i++) {
-        free(G[i]);
-    }
-    free(G);
-
-    return A;
 }
 
 // Compute LL^T from L
@@ -86,44 +178,4 @@ double frobeniusNorm(double** A, double** LLT, int n) {
         }
     }
     return sqrt(norm);
-}
-
-int main() {
-    //not required, I was just testing CPU threads performance
-    omp_set_num_threads(3);
-
-    //for one thread computing arrays this size should be around 1sec
-    //my tests've shown that we need to aim for 10k matrix to receive 2mins computation time
-    //remember that print function and generation of content also takes time
-    int n = 1000;
-
-    double** A = generatePositiveDefiniteMatrix(n);
-    double** L = (double**)malloc(n * sizeof(double*));
-    double** LLT = (double**)malloc(n * sizeof(double*));
-
-    for (int i = 0; i < n; i++) {
-        L[i] = (double*)calloc(n, sizeof(double));
-        LLT[i] = (double*)calloc(n, sizeof(double));
-    }
-
-    double start = omp_get_wtime();
-    choleskyDecomposition(A, L, n);
-    double end = omp_get_wtime();
-    printf("Computation time: %8.6f s\n", end - start);
-
-    computeLLT(L, LLT, n);
-
-    double norm = frobeniusNorm(A, LLT, n);
-    printf("Frobenius Norm: %8.6f\n", norm);
-
-    for (int i = 0; i < n; i++) {
-        free(A[i]);
-        free(L[i]);
-        free(LLT[i]);
-    }
-    free(A);
-    free(L);
-    free(LLT);
-
-    return 0;
 }
