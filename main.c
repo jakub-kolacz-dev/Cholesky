@@ -4,16 +4,75 @@
 #include <omp.h>
 
 
-void printMatrix(double** mat, int n) {
+void printMatrix(double** mat, int n);
+void choleskyDecomposition(double** A, double** L, int n);
+double** generatePositiveDefiniteMatrix(int n);
+void computeLLT(double** L, double** LLT, int n);
+double frobeniusNorm(double** A, double** LLT, int n);
+
+int main() {
+    //not required, I was just testing CPU threads performance
+    omp_set_num_threads(3);
+
+    //for one thread computing arrays this size should be around 1sec
+    //my tests've shown that we need to aim for 10k matrix to receive 2mins computation time
+    //remember that print function and generation of content also takes time
+    int n = 4;
+    double** A = generatePositiveDefiniteMatrix(n);
+    printMatrix(A, n);
+
+    double** L = (double**)malloc(n * sizeof(double*));
+    double** LLT = (double**)malloc(n * sizeof(double*));
+
     for (int i = 0; i < n; i++) {
+        L[i] = (double*)calloc(n, sizeof(double));
+        LLT[i] = (double*)calloc(n, sizeof(double));
+    }
+
+    double** A_cpy = (double**)malloc(n * sizeof(double*));
+    for (int i = 0; i < n; i++) {
+        A_cpy[i] = (double*)malloc(n * sizeof(double));
         for (int j = 0; j < n; j++) {
-            printf("%8.4f ", mat[i][j]);
+            A_cpy[i][j] = A[i][j];
+        }
+    }
+
+    double start = omp_get_wtime();
+    choleskyDecomposition(A_cpy, L, n);
+    double end = omp_get_wtime();
+    printMatrix(A, n);
+    printMatrix(L, n);
+    printf("Computation time: %8.6f s\n", end - start);
+
+    computeLLT(L, LLT, n);
+    printMatrix(LLT, n);
+
+    double norm = frobeniusNorm(A, LLT, n);
+    printf("Frobenius Norm: %8.6f\n", norm);
+
+    for (int i = 0; i < n; i++) {
+        free(A[i]);
+        free(L[i]);
+        free(LLT[i]);
+        free(A_cpy[i]);
+    }
+    free(A);
+    free(L);
+    free(LLT);
+    free(A_cpy);
+
+    return 0;
+}
+
+void printMatrix(double** mat, int n) {
+    for (int i = -1; i < n; i++) {
+        for (int j = -1; j < n; j++) {
+            printf("%7.4f ", mat[i][j]);
         }
         printf("\n");
     }
     printf("\n");
 }
-
 void choleskyDecomposition(double** A, double** L, int n) {
     for (int k = 0; k < n; k++) {
         L[k][k] = sqrt(A[k][k]);
@@ -86,44 +145,4 @@ double frobeniusNorm(double** A, double** LLT, int n) {
         }
     }
     return sqrt(norm);
-}
-
-int main() {
-    //not required, I was just testing CPU threads performance
-    omp_set_num_threads(3);
-
-    //for one thread computing arrays this size should be around 1sec
-    //my tests've shown that we need to aim for 10k matrix to receive 2mins computation time
-    //remember that print function and generation of content also takes time
-    int n = 1000;
-
-    double** A = generatePositiveDefiniteMatrix(n);
-    double** L = (double**)malloc(n * sizeof(double*));
-    double** LLT = (double**)malloc(n * sizeof(double*));
-
-    for (int i = 0; i < n; i++) {
-        L[i] = (double*)calloc(n, sizeof(double));
-        LLT[i] = (double*)calloc(n, sizeof(double));
-    }
-
-    double start = omp_get_wtime();
-    choleskyDecomposition(A, L, n);
-    double end = omp_get_wtime();
-    printf("Computation time: %8.6f s\n", end - start);
-
-    computeLLT(L, LLT, n);
-
-    double norm = frobeniusNorm(A, LLT, n);
-    printf("Frobenius Norm: %8.6f\n", norm);
-
-    for (int i = 0; i < n; i++) {
-        free(A[i]);
-        free(L[i]);
-        free(LLT[i]);
-    }
-    free(A);
-    free(L);
-    free(LLT);
-
-    return 0;
 }
