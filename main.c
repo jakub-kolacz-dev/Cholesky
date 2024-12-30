@@ -4,7 +4,8 @@
 #include <omp.h>
 #include <time.h>
 
-double** generatePositiveDefiniteMatrix(int n, double min, double max);
+double** generateRandomSquareMatrix(uint n, double min_val, double max_val);
+double** generatePositiveDefiniteMatrix(double** G, uint n);
 void printMatrix(double** mat, int n);
 void choleskyDecomposition(double** A, double** L, int n);
 void computeLLT(double** L, double** LLT, int n);
@@ -19,8 +20,12 @@ int main() {
     //remember that print function and generation of content also takes time
     int n = 4;
     printf("Generating matrix %d X %d\n", n, n);
-    double** A = generatePositiveDefiniteMatrix(n, -10, 10);
-    printMatrix(A, n);
+    double** G = generateRandomSquareMatrix(n, -10, 10);
+    double** A = generatePositiveDefiniteMatrix(G, n);
+    for (int i = 0; i < n; i++) {
+        free(G[i]);
+    }
+    free(G);
 
     double** L = (double**)malloc(n * sizeof(double*));
     double** LLT = (double**)malloc(n * sizeof(double*));
@@ -65,22 +70,21 @@ int main() {
     return 0;
 }
 
-// Function to generate a symmetric positive definite matrix
-double** generatePositiveDefiniteMatrix(int n, double min, double max) {
-    double range = max - min;
-    double divider = RAND_MAX / range;
+double** generateRandomSquareMatrix(uint n, double min_val, double max_val){
     srand(time(NULL)); // init pseudo random generator
+    double range = max_val - min_val;
+    double divider = RAND_MAX / range;
     double** G = (double**)malloc(n * sizeof(double*));
     for (int i = 0; i < n; i++) {
         G[i] = (double*)malloc(n * sizeof(double));
-    }
-
-    for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            G[i][j] = min + rand() / divider;
+            G[i][j] = min_val + rand() / divider;
         }
     }
-
+    return G;
+}
+// Function to generate a symmetric positive definite matrix
+double** generatePositiveDefiniteMatrix(double** G, uint n){
     double** A = (double**)malloc(n * sizeof(double*));
     for (int i = 0; i < n; i++) {
         A[i] = (double*)malloc(n * sizeof(double));
@@ -91,12 +95,6 @@ double** generatePositiveDefiniteMatrix(int n, double min, double max) {
             }
         }
     }
-
-    for (int i = 0; i < n; i++) {
-        free(G[i]);
-    }
-    free(G);
-
     return A;
 }
 
