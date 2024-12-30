@@ -14,51 +14,56 @@ void choleskyDecomposition(double** A, double** L, int n);
 void computeLLT(double** L, double** LLT, int n);
 double frobeniusNorm(double** A, double** LLT, int n);
 
-int main() {
-    //not required, I was just testing CPU threads performance
-    omp_set_num_threads(3);
-
+int main(void) {
     //for one thread computing arrays this size should be around 1sec
     //my tests've shown that we need to aim for 10k matrix to receive 2mins computation time
     //remember that print function and generation of content also takes time
-    int n = 4;
-    printf("Generating matrix %d X %d\n", n, n);
+    int n = 1000;
+    printf("Generating matrix %d X %d ...\n", n, n);
     double** G = generateRandomSquareMatrix(n, -10, 10);
     double** A = generatePositiveDefiniteMatrix(G, n);
     freeSquareMatrix(G, n);
 
+    printf("Sequential Cholesky Decomposition ...\n");
     double** L = (double**)malloc(n * sizeof(double*));
     double** LLT = (double**)malloc(n * sizeof(double*));
-
     for (int i = 0; i < n; i++) {
         L[i] = (double*)calloc(n, sizeof(double));
         LLT[i] = (double*)calloc(n, sizeof(double));
     }
-
     double** A_cpy = copySquareMatrix(A, n);
     double start = omp_get_wtime();
-    choleskyDecomposition(A_cpy, L, n);
+    sequentialCholeskyDecomposition(A_cpy, L, n);
     double end = omp_get_wtime();
-    printMatrix(A, n);
-    printMatrix(L, n);
     printf("Computation time: %8.6f s\n", end - start);
-
     computeLLT(L, LLT, n);
-    printMatrix(LLT, n);
-
     double norm = frobeniusNorm(A, LLT, n);
     printf("Frobenius Norm: %8.6f\n", norm);
+    freeSquareMatrix(A_cpy, n);
+    freeSquareMatrix(L, n);
+    freeSquareMatrix(LLT, n);
 
+    printf("Parallel Cholesky Decomposition ...\n");
+    L = (double**)malloc(n * sizeof(double*));
+    LLT = (double**)malloc(n * sizeof(double*));
     for (int i = 0; i < n; i++) {
-        free(A[i]);
-        free(L[i]);
-        free(LLT[i]);
-        free(A_cpy[i]);
+        L[i] = (double*)calloc(n, sizeof(double));
+        LLT[i] = (double*)calloc(n, sizeof(double));
     }
-    free(A);
-    free(L);
-    free(LLT);
-    free(A_cpy);
+    A_cpy = copySquareMatrix(A, n);
+    start = omp_get_wtime();
+    choleskyDecomposition(A_cpy, L, n);
+    end = omp_get_wtime();
+    printf("Computation time: %8.6f s\n", end - start);
+    computeLLT(L, LLT, n);
+    norm = frobeniusNorm(A, LLT, n);
+    printf("Frobenius Norm: %8.6f\n", norm);
+    freeSquareMatrix(A_cpy, n);
+    freeSquareMatrix(L, n);
+    freeSquareMatrix(LLT, n);
+
+
+    freeSquareMatrix(A, n);
 
     return 0;
 }
@@ -119,6 +124,19 @@ void freeSquareMatrix(double** mat, uint n){
     free(mat);
 }
 
+void sequentialCholeskyDecomposition(double** A, double** L, int n) {
+    for (int k = 0; k < n; k++) {
+        L[k][k] = sqrt(A[k][k]);
+        for (int i = k + 1; i < n; i++) {
+            L[i][k] = A[i][k] / L[k][k];
+        }
+        for (int i = k + 1; i < n; i++) {
+            for (int j = k + 1; j <= i; j++) {
+                A[i][j] -= L[i][k] * L[j][k];
+            }
+        }
+    }
+}
 
 void choleskyDecomposition(double** A, double** L, int n) {
     for (int k = 0; k < n; k++) {
@@ -135,8 +153,6 @@ void choleskyDecomposition(double** A, double** L, int n) {
         }
     }
 }
-
-
 
 // Compute LL^T from L
 void computeLLT(double** L, double** LLT, int n) {
