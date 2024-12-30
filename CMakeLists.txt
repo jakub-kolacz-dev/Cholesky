@@ -9,3 +9,4 @@ if(OpenMP_C_FOUND)
 endif()
 
 add_executable(Cholesky main.c)
+target_link_libraries(Cholesky m)
