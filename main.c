@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <omp.h>
+#include <time.h>
 
 
 void printMatrix(double** mat, int n);
@@ -64,33 +65,9 @@ int main() {
     return 0;
 }
 
-void printMatrix(double** mat, int n) {
-    for (int i = -1; i < n; i++) {
-        for (int j = -1; j < n; j++) {
-            printf("%7.4f ", mat[i][j]);
-        }
-        printf("\n");
-    }
-    printf("\n");
-}
-void choleskyDecomposition(double** A, double** L, int n) {
-    for (int k = 0; k < n; k++) {
-        L[k][k] = sqrt(A[k][k]);
-        #pragma omp parallel for
-        for (int i = k + 1; i < n; i++) {
-            L[i][k] = A[i][k] / L[k][k];
-        }
-        #pragma omp parallel for collapse(2)
-        for (int i = k + 1; i < n; i++) {
-            for (int j = k + 1; j <= i; j++) {
-                A[i][j] -= L[i][k] * L[j][k];
-            }
-        }
-    }
-}
-
 // Function to generate a symmetric positive definite matrix
 double** generatePositiveDefiniteMatrix(int n) {
+    srand(time(NULL)); // init pseudo random generator
     double** G = (double**)malloc(n * sizeof(double*));
     for (int i = 0; i < n; i++) {
         G[i] = (double*)malloc(n * sizeof(double));
@@ -120,6 +97,34 @@ double** generatePositiveDefiniteMatrix(int n) {
 
     return A;
 }
+
+void printMatrix(double** mat, int n) {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            printf("%7.4f ", mat[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
+void choleskyDecomposition(double** A, double** L, int n) {
+    for (int k = 0; k < n; k++) {
+        L[k][k] = sqrt(A[k][k]);
+        #pragma omp parallel for
+        for (int i = k + 1; i < n; i++) {
+            L[i][k] = A[i][k] / L[k][k];
+        }
+        #pragma omp parallel for collapse(2)
+        for (int i = k + 1; i < n; i++) {
+            for (int j = k + 1; j <= i; j++) {
+                A[i][j] -= L[i][k] * L[j][k];
+            }
+        }
+    }
+}
+
+
 
 // Compute LL^T from L
 void computeLLT(double** L, double** LLT, int n) {
