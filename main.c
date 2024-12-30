@@ -6,8 +6,9 @@
 
 double** generateRandomSquareMatrix(uint n, double min_val, double max_val);
 double** generatePositiveDefiniteMatrix(double** G, uint n);
-void printMatrix(double** mat, int n);
-double** copySquareMatrix(double** mat, int n);
+void printMatrix(double** mat, uint n);
+double** copySquareMatrix(double** mat, uint n);
+void freeSquareMatrix(double** mat, uint n);
 void sequentialCholeskyDecomposition(double** A, double** L, int n);
 void choleskyDecomposition(double** A, double** L, int n);
 void computeLLT(double** L, double** LLT, int n);
@@ -24,10 +25,7 @@ int main() {
     printf("Generating matrix %d X %d\n", n, n);
     double** G = generateRandomSquareMatrix(n, -10, 10);
     double** A = generatePositiveDefiniteMatrix(G, n);
-    for (int i = 0; i < n; i++) {
-        free(G[i]);
-    }
-    free(G);
+    freeSquareMatrix(G, n);
 
     double** L = (double**)malloc(n * sizeof(double*));
     double** LLT = (double**)malloc(n * sizeof(double*));
@@ -93,7 +91,7 @@ double** generatePositiveDefiniteMatrix(double** G, uint n){
     return A;
 }
 
-void printMatrix(double** mat, int n) {
+void printMatrix(double** mat, uint n) {
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             printf("%7.4f ", mat[i][j]);
@@ -103,7 +101,7 @@ void printMatrix(double** mat, int n) {
     printf("\n");
 }
 
-double** copySquareMatrix(double** mat, int n){
+double** copySquareMatrix(double** mat, uint n){
     double** cpy = (double**)malloc(n * sizeof(double*));
     for (int i = 0; i < n; i++) {
         cpy[i] = (double*)malloc(n * sizeof(double));
@@ -112,6 +110,13 @@ double** copySquareMatrix(double** mat, int n){
         }
     }
     return cpy;
+}
+
+void freeSquareMatrix(double** mat, uint n){
+    for (int i = 0; i < n; i++) {
+        free(mat[i]);
+    }
+    free(mat);
 }
 
 
