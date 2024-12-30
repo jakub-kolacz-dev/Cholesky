@@ -7,6 +7,8 @@
 double** generateRandomSquareMatrix(uint n, double min_val, double max_val);
 double** generatePositiveDefiniteMatrix(double** G, uint n);
 void printMatrix(double** mat, int n);
+double** copySquareMatrix(double** mat, int n);
+void sequentialCholeskyDecomposition(double** A, double** L, int n);
 void choleskyDecomposition(double** A, double** L, int n);
 void computeLLT(double** L, double** LLT, int n);
 double frobeniusNorm(double** A, double** LLT, int n);
@@ -35,14 +37,7 @@ int main() {
         LLT[i] = (double*)calloc(n, sizeof(double));
     }
 
-    double** A_cpy = (double**)malloc(n * sizeof(double*));
-    for (int i = 0; i < n; i++) {
-        A_cpy[i] = (double*)malloc(n * sizeof(double));
-        for (int j = 0; j < n; j++) {
-            A_cpy[i][j] = A[i][j];
-        }
-    }
-
+    double** A_cpy = copySquareMatrix(A, n);
     double start = omp_get_wtime();
     choleskyDecomposition(A_cpy, L, n);
     double end = omp_get_wtime();
@@ -107,6 +102,18 @@ void printMatrix(double** mat, int n) {
     }
     printf("\n");
 }
+
+double** copySquareMatrix(double** mat, int n){
+    double** cpy = (double**)malloc(n * sizeof(double*));
+    for (int i = 0; i < n; i++) {
+        cpy[i] = (double*)malloc(n * sizeof(double));
+        for (int j = 0; j < n; j++) {
+            cpy[i][j] = mat[i][j];
+        }
+    }
+    return cpy;
+}
+
 
 void choleskyDecomposition(double** A, double** L, int n) {
     for (int k = 0; k < n; k++) {
