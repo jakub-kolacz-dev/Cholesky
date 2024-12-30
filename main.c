@@ -4,10 +4,9 @@
 #include <omp.h>
 #include <time.h>
 
-
+double** generatePositiveDefiniteMatrix(int n);
 void printMatrix(double** mat, int n);
 void choleskyDecomposition(double** A, double** L, int n);
-double** generatePositiveDefiniteMatrix(int n);
 void computeLLT(double** L, double** LLT, int n);
 double frobeniusNorm(double** A, double** LLT, int n);
 
