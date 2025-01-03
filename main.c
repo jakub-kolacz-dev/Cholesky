@@ -18,9 +18,6 @@ double frobeniusNorm(double** A, double** LLT, int n);
 int calculateDecompositionSequentially(double** A, int n);
 int calculateDecompositionUsingMPI(double** A, int n);
 int calculateDecompositionUsingOMP(double** A, int n);
-// int calculateDecompositionUsingCudaCores(double** A, int n);
-
-// extern void choleskyDecompositionCUDA(double* A, double* L, int n);
 
 
 int main(void)

@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(Cholesky C)
-#project(Cholesky C CXX CUDA)
+project(Cholesky C CXX CUDA)
 
 set(CMAKE_C_STANDARD 99)
 
